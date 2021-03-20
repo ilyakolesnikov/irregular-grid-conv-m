@@ -1,0 +1,28 @@
+function out = getSideSimplexesIds(obj, simplexIndex)
+    nodes = obj.simplexList(simplexIndex, :);
+    simplexesByNodes = [];
+    sideSimplexes = [];
+ 
+    for i = 1:length(nodes)
+        nodeSimplexes = obj.nodesMap(nodes(i));
+        simplexesByNodes = [simplexesByNodes nodeSimplexes];        
+    end
+
+    %duplicates = obj.getDuplicateIds(simplexesByNodes);
+    %duplicates = duplicates(duplicates ~= simplexIndex);
+    
+    % Походу nodesMap шалит все же
+    for i = 1:length(obj.simplexList)
+        commonNodes = intersect(nodes, obj.simplexList(i, :));
+        
+        if (length(commonNodes) == 2)
+            sideSimplexes = [sideSimplexes i];
+        end
+        
+        if (length(sideSimplexes) == 3)
+            break;
+        end
+    end  
+    
+    out = sideSimplexes;
+end
