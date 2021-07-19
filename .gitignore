@@ -1,4 +1,6 @@
 datasets/
+dashboard
+LOG.txt
 *.mat
 *.jpg
 pic4_create_mesh.m

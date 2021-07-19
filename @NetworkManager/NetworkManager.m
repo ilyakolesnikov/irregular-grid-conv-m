@@ -15,16 +15,16 @@ classdef NetworkManager < handle
             %obj.nodeY = inNodeY;
             obj.learnRate = 0.2;
             fcTestKernels = [
-                1.0 1.1 0.9 1.2 1.0 1.1 0.9 1.2 1.0 1.1 0.9 1.2;
-                0.8 0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.8 0.9 1.0 1.1;
-                0.9 1.2 1.0 0.8 0.9 1.2 1.0 0.8 0.9 1.2 1.0 0.8;
+                0.4 1.1 0.9 1.2 1.0 1.1 0.9 1.2 1.0 1.1 0.9 1.2;
+                0.2 0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.3 0.9 1.0 1.1;
+                0.5 1.2 1.0 0.3 0.9 1.2 1.0 0.5 0.9 1.2 1.0 0.8;
                 1.1 0.9 1.2 1.0 1.1 0.9 1.2 1.0 1.1 0.9 1.2 1.0;
-                0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.8;
+                0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.5;
                 1.1 0.8 0.9 1.0 1.1 0.8 0.9 1.0 1.1 0.8 0.9 1.0;
-                0.8 0.9 1.0 0.8 0.9 1.0 0.8 0.9 1.0 0.8 0.9 1.0;
+                0.5 0.9 1.0 0.8 0.9 1.0 0.3 0.9 1.0 0.8 0.9 1.0;
                 1.0 1.1 0.9 1.0 1.1 0.9 1.0 1.1 0.9 1.0 1.1 0.9;
-                1.2 1.0 0.8 1.2 1.0 0.8 1.2 1.0 0.8 1.2 1.0 0.8;
-                1.0 0.8 1.0 0.8 1.0 0.8 1.0 0.8 1.0 0.8 1.0 0.8;
+                1.2 1.0 0.3 1.2 1.0 0.8 1.2 1.0 0.8 1.2 1.0 0.8;
+                0.7 0.5 1.0 0.8 1.0 0.5 1.0 0.8 1.0 0.5 1.0 0.5;
             ];
             obj.fcLayer = FullConnectionLayer(12, 10, fcTestKernels); 
             obj.initKernels(2);
@@ -115,7 +115,8 @@ classdef NetworkManager < handle
         
         function [accuracy, lost, deltas] = checkImage(obj, imageData, classId)
             outFeatures = obj.passByImage(imageData);
-            classResult = max(1, outFeatures(classId));
+%             classResult = min(1, outFeatures(classId), 0);
+            classResult = outFeatures(classId);
             deltas = zeros(1, 10);
             
             for i = 1:10
@@ -138,7 +139,8 @@ classdef NetworkManager < handle
                 startPos = (i - 1) * 4 + 1;
                 stopPos = startPos + 3;
                 localDeltas = newDeltas(startPos:stopPos);
-                deltasAfterGlobalPool(:, :, i) = obj.globalPoolLayers(i).backward(localDeltas);
+                res = obj.globalPoolLayers(i).backward(localDeltas);
+                deltasAfterGlobalPool(:, :, i) = res;
             end
             
             blockSet = obj.convToPoolBlockSets(2);
@@ -168,6 +170,8 @@ classdef NetworkManager < handle
             
             lastPoolDeltas = firstPoolLayer.backward(nextDeltas);
             lastConvDeltas = firstConvLayer.backward(lastPoolDeltas, obj.learnRate);
+            
+            fprintf('Timestamp back propagation done - %s\n', datestr(now,'HH:MM:SS.FFF'));
         end
         
         function out = passByImage(obj, imageData)
@@ -176,6 +180,8 @@ classdef NetworkManager < handle
             flattenFeatures = [];
             
             for i = 1:size(blocksSetOut, 1)
+                % >>> utilConvLayer нужен только для подготовки фичей, переданные 
+                % веса значения не имеют
                 utilConvLayer = SimplexConvLayer([1 1 1 1]);
                 obj.globalPoolLayers(i) = GlobalPoolLayer();
                 blockDataMap = blocksSetOut(i);

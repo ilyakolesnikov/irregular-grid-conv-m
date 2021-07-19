@@ -89,20 +89,21 @@ classdef SimplexConvLayer < handle
                 newDeltaErrors(i, :) = obj.backwardBySimplex(i);
             end
             
-            for i = 1:size(obj.inDeltaErrors, 1)
-                meanError = meanError + mean(obj.inDeltaErrors(i, :));
+            for i = 1:size(obj.deltaErrors, 1)
+                meanError = meanError + mean(obj.deltaErrors(i, :));
             end
             
-            meanError = meanError / size(obj.inDeltaErrors, 1);
+            meanError = meanError / size(obj.deltaErrors, 1);
             sideSimplexes = obj.getSideSimplexesIds(1);
             simplexIds = [1 sideSimplexes];
             inputFeaturesList = zeros(4, 4);
             
-            for i = 1:simplexIds(sideSimplexes)
+            for i = 1:length(simplexIds)
+                simplexId = simplexIds(i);
                 features = obj.getFeaturesToSimplex(i);
                 featureVal = features(1);
                 weightDelta = meanError * featureVal * learnRate;
-                kernel(i) = kernel(i) + weightDelta;
+                obj.kernel(i) = obj.kernel(i) + weightDelta;
             end
             
             out = newDeltaErrors;
@@ -117,7 +118,10 @@ classdef SimplexConvLayer < handle
             
             for i = 1:length(simplexIds)
                 simplexId = simplexIds(i);
-                deltaFeaturesList(i, :) = obj.deltaErrors(simplexId, :);
+                
+                if (length(obj.deltaErrors) >= simplexId)
+                    deltaFeaturesList(i, :) = obj.deltaErrors(simplexId, :);
+                end
             end
 
             for i = 1:size(deltaFeaturesList, 1)

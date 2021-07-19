@@ -35,7 +35,7 @@ classdef FullConnectionLayer < handle
                 newDeltaErrors(i) = sum(deltaErrors .* localWeights);
                 
                 for j = 1:size(obj.weights, 1)
-                    newWeights(j, i) = newWeights(j, i) + deltaErrors(j) * learnRate * obj.cachedInputs(i);
+                    newWeights(j, i) = obj.weights(j, i) + deltaErrors(j) * learnRate * obj.cachedInputs(i);
                 end
             end
             

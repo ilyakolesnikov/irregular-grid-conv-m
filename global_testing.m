@@ -1,7 +1,8 @@
+warning('off', 'all');
 networkManager = NetworkManager();
 networkManager.initConvToPoolBlockSets();
 
-%networkManager.initLayers();
+%networkManager.initLayers(); 
 %networkManager.passByImage('freud.jpg');
 %{ 
 csvSamples = readtable('datasets/MNIST/mnist_sample_20.csv');
@@ -51,6 +52,8 @@ freudImg = rgb2gray(imread('freud.jpg'));
 networkManager.backwardByImage(deltas);
 %disp(1);
 disp(lost);
+
+% --- Продумать по обучению
 
 
 %[LMST, T, nodeX, nodeY] = processimg(img);

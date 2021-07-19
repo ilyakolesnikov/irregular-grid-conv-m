@@ -32,7 +32,7 @@ classdef GlobalPoolLayer < handle
             for i = 1:featuresShape(2)
                 error = deltaErrors(i);
                 errorIdx = obj.maxValuesIndexes(i);
-                errorsOut(i, errorIdx) = error;
+                errorsOut(errorIdx, i) = error;
             end
             
             out = errorsOut;

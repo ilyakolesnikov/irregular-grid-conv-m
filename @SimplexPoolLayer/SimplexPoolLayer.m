@@ -22,21 +22,21 @@ classdef SimplexPoolLayer < handle
             obj.simplexList = inSimplexList;
             obj.simplexFeatures = inSimplexFeatures;
             obj.initNodesMap();
+            collapsedCount = 0;
+
+            simplexPairs = obj.splitSimplexes();
+            median = obj.getPairsMedian(simplexPairs);
             
-            simplexTuples = obj.splitSimplexes();
-            
-            for i = 1:size(simplexTuples, 1)
-                firstPair = simplexTuples(i, 1:2);
-                secondPair = simplexTuples(i, 3:4);
-                compareResult = obj.comparePairs(firstPair, secondPair);
-                
-                if (compareResult)
-                    obj.collapseSideEdge(secondPair(1), secondPair(2));
-                else
-                    obj.collapseSideEdge(firstPair(1), firstPair(2));
+            for i = 1:size(simplexPairs, 1)
+                currentPair = simplexPairs(i, :);
+                pairVal = obj.sumFeaturesForPair(currentPair);
+                   
+                if (pairVal < median)
+                    obj.collapseSideEdge(currentPair(1), currentPair(2));
+                    collapsedCount = collapsedCount + 1;
                 end
             end
-            
+                       
             obj.clearNullSimplexes();
             
             newNodeX = obj.nodeX;
@@ -54,11 +54,14 @@ classdef SimplexPoolLayer < handle
             if (~size(obj.simplexesCollapseMap, 1))
                 out = simplexDeltaErrors;
             else
-                for i = 1:size(simplexDeltaErrors, 1)
+                for i = 1:size(simplexDeltaErrors, 1) 
                     restoredIndex = obj.simplexesCollapseMap(i);
                     newDeltaErrors(restoredIndex, :) = simplexDeltaErrors(i, :);
                 end
 
+                % --- Clear after backward
+                obj.simplexesCollapseMap = [];
+                
                 out = newDeltaErrors;
             end
         end
@@ -66,10 +69,16 @@ classdef SimplexPoolLayer < handle
         function out = getSideSimplexesIds(obj, simplexIndex)
             nodes = obj.simplexList(simplexIndex, :);
             simplexesByNodes = [];
+            losenNodes = [];
 
             for i = 1:length(nodes)
-                nodeSimplexes = obj.nodesMap(nodes(i));
-                simplexesByNodes = [simplexesByNodes nodeSimplexes];        
+                nodeKey = nodes(i);
+                if (isKey(obj.nodesMap, nodeKey))
+                    nodeSimplexes = obj.nodesMap(nodeKey);
+                    simplexesByNodes = [simplexesByNodes nodeSimplexes];
+                else
+                    losenNodes = [losenNodes nodeKey];
+                end
             end
 
             duplicates = obj.getDuplicateIds(simplexesByNodes);
@@ -83,7 +92,7 @@ classdef SimplexPoolLayer < handle
 
                 for j = 1:length(simplexNodes)
                     currentNodeIdx = simplexNodes(j);
-                    hasSimplex = obj.nodesMap.isKey(currentNodeIdx);
+                    hasSimplex = isKey(obj.nodesMap, currentNodeIdx);
         
                     if (hasSimplex)
                         currentNodeSimplexes = obj.nodesMap(currentNodeIdx);
@@ -103,10 +112,28 @@ classdef SimplexPoolLayer < handle
             out = firstPairFeaturesSum >= secondPairFeaturesSum;
         end
         
+        function out = getPairsMedian(obj, pairs)
+            pairValues = [];
+            pairsCount = size(pairs, 1);
+                        
+            for i = 1:pairsCount
+                pairValues = [pairValues obj.sumFeaturesForPair(pairs(i, :))];
+            end
+            
+            out = median(pairValues);
+        end
+        
         function out = sumFeaturesForSimplex(obj, simplexId)
             features = obj.simplexFeatures(simplexId);
             
             out = sum(features);
+        end
+        
+        function out = sumFeaturesForPair(obj, simplexPair)
+            firstSimplexVal = obj.sumFeaturesForSimplex(simplexPair(1));
+            secondSimplexVal = obj.sumFeaturesForSimplex(simplexPair(2));
+            
+            out = firstSimplexVal + secondSimplexVal;
         end
         
         function collapseSideEdge(obj, simplexA, simplexB)
@@ -114,12 +141,17 @@ classdef SimplexPoolLayer < handle
             simplexBNodes = obj.simplexList(simplexB, :);
             sharedNodes = intersect(simplexANodes, simplexBNodes);
             
+            if (length(sharedNodes) ~= 2)
+                return;
+            end
+            
             newNodeId = length(obj.nodeX) + 1;
             firstNodePos = [obj.nodeX(sharedNodes(1)) obj.nodeY(sharedNodes(1))];
             secondNodePos = [obj.nodeX(sharedNodes(2)) obj.nodeY(sharedNodes(2))];
             newNodePos = floor(mean([firstNodePos; secondNodePos]));
             obj.nodeX(newNodeId) = newNodePos(1);
             obj.nodeY(newNodeId) = newNodePos(2);
+            obj.nodesMap(newNodeId) = [obj.nodesMap(sharedNodes(1)) obj.nodesMap(sharedNodes(1))]; 
             
             newSimplexList = obj.simplexList;
             obj.simplexesCollapseMap = [];

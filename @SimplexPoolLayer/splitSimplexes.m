@@ -3,13 +3,15 @@ function out = splitSimplexes(obj)
     % - как именно?
     simplexesCount = size(obj.simplexList, 1);
     obj.processedSimplexes = [];
-    firstPair = [];
-    secondPair = [];
-    pairTuples = [];
+    currentPair = [];
+    pairs = [];
+    
+%     firstPair = [];
+%     secondPair = [];
+%     pairTuples = [];
     
     for i = 1:simplexesCount
-        firstPair = [];
-        secondPair = [];
+        currentPair = [];
         isProcessed = any(ismember(obj.processedSimplexes, i));
  
         if (isProcessed || ~obj.isCenterSimplex(i))
@@ -17,38 +19,18 @@ function out = splitSimplexes(obj)
         end
 
         obj.processedSimplexes = [obj.processedSimplexes i];
-        firstSideSimplex = obj.getPairSimplex(i);
+        firstSideSimplexId = obj.getPairSimplex(i);
         
-        if (~firstSideSimplex)
+        if (~firstSideSimplexId)
             obj.processedSimplexes(obj.processedSimplexes == i) = [];
             continue;
         end
            
-        firstPair = [i firstSideSimplex];
-        obj.processedSimplexes = [obj.processedSimplexes firstSideSimplex];
-        nextSideSimplex = obj.getPairSimplex(firstSideSimplex);
-        
-        if (~nextSideSimplex)
-            obj.processedSimplexes(obj.processedSimplexes == i) = [];
-            obj.processedSimplexes(obj.processedSimplexes == firstSideSimplex) = [];
-            continue;
-        end
+        currentPair = [i firstSideSimplexId];
+        obj.processedSimplexes = [obj.processedSimplexes firstSideSimplexId];
 
-        obj.processedSimplexes = [obj.processedSimplexes nextSideSimplex];
-        lastSideSimplex = obj.getPairSimplex(nextSideSimplex);
-
-        if (~lastSideSimplex)
-            obj.processedSimplexes(obj.processedSimplexes == i) = [];
-            obj.processedSimplexes(obj.processedSimplexes == firstSideSimplex) = [];
-            obj.processedSimplexes(obj.processedSimplexes == nextSideSimplex) = [];
-            continue;
-        end
-
-        secondPair = [nextSideSimplex lastSideSimplex];
-        obj.processedSimplexes = [obj.processedSimplexes lastSideSimplex];
-        
-        pairTuples = [pairTuples; [firstPair secondPair]]; 
+        pairs = [pairs; currentPair]; 
     end
 
-    out = pairTuples;
+    out = pairs;
 end
